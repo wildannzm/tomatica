@@ -1,5 +1,5 @@
 <script>
-	import { Thermometer, Droplets, Sun, Sprout, CloudRain, Wind, LayoutDashboard, Table2 } from 'lucide-svelte';
+	import { Thermometer, Droplets, Sun, Sprout, CloudRain, Wind, LayoutDashboard, Table2, Database } from 'lucide-svelte';
 	import { supabase } from '$lib/supabaseClient';
 
 	// ─── View State ───────────────────────────────────────────────────
@@ -9,12 +9,12 @@
 	let dataSensor = $state({
 		id: null,
 		created_at: null,
-		air_temperature: 0,
-		air_humidity: 0,
-		lux: 0,
-		soil_moisture: 0,
-		rainfall: 0,
-		wind_speed: 0
+		air_temperature: null,
+		air_humidity: null,
+		lux: null,
+		soil_moisture: null,
+		rainfall: null,
+		wind_speed: null
 	});
 
 	/** @type {any[]} */
@@ -28,10 +28,10 @@
 	// Initial loading state
 	let isLoading = $state(true);
 
-	const OFFLINE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+	const OFFLINE_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes
 
-	// true  → data received within 5 min
-	// false → no data yet OR gap > 5 min
+	// true  → data received within 3 min
+	// false → no data yet OR gap > 3 min
 	const isOnline = $derived(
 		lastDataTime !== null && now - lastDataTime < OFFLINE_THRESHOLD_MS
 	);
@@ -46,7 +46,7 @@
 			icon: Thermometer,
 			color: 'text-red-500',
 			bgColor: 'bg-red-50',
-			status: dataSensor.air_temperature > 35 ? 'Tinggi' : dataSensor.air_temperature < 18 ? 'Rendah' : 'Normal'
+			status: dataSensor.air_temperature === null ? '-' : (dataSensor.air_temperature > 35 ? 'Tinggi' : dataSensor.air_temperature < 18 ? 'Rendah' : 'Normal')
 		},
 		{
 			id: 2,
@@ -56,7 +56,7 @@
 			icon: Droplets,
 			color: 'text-sky-500',
 			bgColor: 'bg-sky-50',
-			status: dataSensor.air_humidity > 80 ? 'Tinggi' : dataSensor.air_humidity < 40 ? 'Rendah' : 'Normal'
+			status: dataSensor.air_humidity === null ? '-' : (dataSensor.air_humidity > 80 ? 'Tinggi' : dataSensor.air_humidity < 40 ? 'Rendah' : 'Normal')
 		},
 		{
 			id: 3,
@@ -66,7 +66,7 @@
 			icon: Sun,
 			color: 'text-amber-500',
 			bgColor: 'bg-amber-50',
-			status: dataSensor.lux > 5000 ? 'Tinggi' : dataSensor.lux < 1000 ? 'Rendah' : 'Normal'
+			status: dataSensor.lux === null ? '-' : (dataSensor.lux > 5000 ? 'Tinggi' : dataSensor.lux < 1000 ? 'Rendah' : 'Normal')
 		},
 		{
 			id: 4,
@@ -76,7 +76,7 @@
 			icon: Sprout,
 			color: 'text-emerald-500',
 			bgColor: 'bg-emerald-50',
-			status: dataSensor.soil_moisture > 80 ? 'Basah' : dataSensor.soil_moisture < 30 ? 'Kering' : 'Normal'
+			status: dataSensor.soil_moisture === null ? '-' : (dataSensor.soil_moisture > 80 ? 'Basah' : dataSensor.soil_moisture < 30 ? 'Kering' : 'Normal')
 		},
 		{
 			id: 5,
@@ -86,7 +86,7 @@
 			icon: CloudRain,
 			color: 'text-indigo-500',
 			bgColor: 'bg-indigo-50',
-			status: dataSensor.rainfall > 0 ? 'Hujan' : 'Cerah'
+			status: dataSensor.rainfall === null ? '-' : (dataSensor.rainfall > 0 ? 'Hujan' : 'Cerah')
 		},
 		{
 			id: 6,
@@ -96,7 +96,7 @@
 			icon: Wind,
 			color: 'text-teal-500',
 			bgColor: 'bg-teal-50',
-			status: dataSensor.wind_speed > 10 ? 'Kencang' : dataSensor.wind_speed > 5 ? 'Sedang' : 'Sepoi'
+			status: dataSensor.wind_speed === null ? '-' : (dataSensor.wind_speed > 10 ? 'Kencang' : dataSensor.wind_speed > 5 ? 'Sedang' : 'Sepoi')
 		}
 	]);
 
@@ -257,7 +257,7 @@
 						<p class="mb-1 text-sm font-medium text-gray-500">{sensor.label}</p>
 						<div class="flex items-baseline gap-1.5">
 							<span class="text-3xl font-bold tracking-tight text-gray-900">
-								{sensor.value}
+								{sensor.value ?? '-'}
 							</span>
 							<span class="text-sm font-medium text-gray-400">{sensor.unit}</span>
 						</div>
@@ -265,10 +265,22 @@
 				{/each}
 			</div>
 
-		<!-- ── TABLE VIEW ──────────────────────────────────────────────── -->
 		{:else}
-			{#if tableRows.length === 0}
-				<div class="py-16 text-center text-sm text-gray-400">Memuat data...</div>
+			{#if isLoading}
+				<div class="flex flex-col items-center justify-center py-20 text-gray-400">
+					<div class="mb-3 h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-red-500"></div>
+					<p class="text-sm font-medium italic">Memuat riwayat data...</p>
+				</div>
+			{:else if tableRows.length === 0}
+				<div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white py-20 shadow-xs">
+					<div class="mb-4 rounded-full bg-gray-50 p-4 text-gray-400">
+						<Database class="h-8 w-8" />
+					</div>
+					<h3 class="text-lg font-semibold text-gray-900">Data sensor belum tersedia</h3>
+					<p class="mt-1 max-w-xs text-center text-sm text-gray-500">
+						Riwayat pemantauan tidak ditemukan. Pastikan perangkat IoT Anda terhubung dan sedang mengirimkan data.
+					</p>
+				</div>
 			{:else}
 				<!-- Mobile: card list (hidden on md+) -->
 				<div class="flex flex-col gap-3 md:hidden">
@@ -281,27 +293,27 @@
 							<div class="grid grid-cols-2 gap-x-4 gap-y-2.5">
 								<div class="flex items-center justify-between">
 									<span class="text-xs text-gray-500">Suhu</span>
-									<span class="text-sm font-bold text-red-500">{row.air_temperature} °C</span>
+									<span class="text-sm font-bold text-red-500">{row.air_temperature ?? '-'} °C</span>
 								</div>
 								<div class="flex items-center justify-between">
 									<span class="text-xs text-gray-500">Kelembapan</span>
-									<span class="text-sm font-bold text-sky-500">{row.air_humidity} %</span>
+									<span class="text-sm font-bold text-sky-500">{row.air_humidity ?? '-'} %</span>
 								</div>
 								<div class="flex items-center justify-between">
 									<span class="text-xs text-gray-500">Cahaya</span>
-									<span class="text-sm font-bold text-amber-500">{row.lux} Lux</span>
+									<span class="text-sm font-bold text-amber-500">{row.lux ?? '-'} Lux</span>
 								</div>
 								<div class="flex items-center justify-between">
 									<span class="text-xs text-gray-500">Tanah</span>
-									<span class="text-sm font-bold text-emerald-500">{row.soil_moisture} %</span>
+									<span class="text-sm font-bold text-emerald-500">{row.soil_moisture ?? '-'} %</span>
 								</div>
 								<div class="flex items-center justify-between">
 									<span class="text-xs text-gray-500">Hujan</span>
-									<span class="text-sm font-bold text-indigo-500">{row.rainfall} mm/h</span>
+									<span class="text-sm font-bold text-indigo-500">{row.rainfall ?? '-'} mm/h</span>
 								</div>
 								<div class="flex items-center justify-between">
 									<span class="text-xs text-gray-500">Angin</span>
-									<span class="text-sm font-bold text-teal-500">{row.wind_speed} m/s</span>
+									<span class="text-sm font-bold text-teal-500">{row.wind_speed ?? '-'} m/s</span>
 								</div>
 							</div>
 						</div>
@@ -327,12 +339,12 @@
 								{#each tableRows as row (row.id)}
 									<tr class="border-b border-gray-50 transition-colors duration-150 hover:bg-red-50/30">
 										<td class="px-4 py-3 font-medium text-gray-600">{formatTime(row.created_at)}</td>
-										<td class="px-4 py-3 text-right font-semibold text-red-500">{row.air_temperature}</td>
-										<td class="px-4 py-3 text-right font-semibold text-sky-500">{row.air_humidity}</td>
-										<td class="px-4 py-3 text-right font-semibold text-amber-500">{row.lux}</td>
-										<td class="px-4 py-3 text-right font-semibold text-emerald-500">{row.soil_moisture}</td>
-										<td class="px-4 py-3 text-right font-semibold text-indigo-500">{row.rainfall}</td>
-										<td class="px-4 py-3 text-right font-semibold text-teal-500">{row.wind_speed}</td>
+										<td class="px-4 py-3 text-right font-semibold text-red-500">{row.air_temperature ?? '-'}</td>
+										<td class="px-4 py-3 text-right font-semibold text-sky-500">{row.air_humidity ?? '-'}</td>
+										<td class="px-4 py-3 text-right font-semibold text-amber-500">{row.lux ?? '-'}</td>
+										<td class="px-4 py-3 text-right font-semibold text-emerald-500">{row.soil_moisture ?? '-'}</td>
+										<td class="px-4 py-3 text-right font-semibold text-indigo-500">{row.rainfall ?? '-'}</td>
+										<td class="px-4 py-3 text-right font-semibold text-teal-500">{row.wind_speed ?? '-'}</td>
 									</tr>
 								{/each}
 							</tbody>
