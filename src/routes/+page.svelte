@@ -25,6 +25,8 @@
 	let lastDataTime = $state(/** @type {number|null} */ (null));
 	// Current time — updated every 30 s so isOnline re-evaluates automatically
 	let now = $state(Date.now());
+	// Initial loading state
+	let isLoading = $state(true);
 
 	const OFFLINE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -106,7 +108,7 @@
 			.select('*')
 			.order('created_at', { ascending: false })
 			.limit(1)
-			.single()
+			.maybeSingle()
 			.then(({ data, error }) => {
 				if (error) console.error('Gagal mengambil data awal:', error.message);
 				if (data) {
@@ -114,6 +116,7 @@
 					// Seed lastDataTime from the row's created_at timestamp
 					lastDataTime = new Date(data.created_at).getTime();
 				}
+				isLoading = false;
 			});
 
 		// 2. Fetch last 50 rows for table view
@@ -193,7 +196,7 @@
 				>
 			</div>
 			<div class="flex items-center gap-3">
-				{#if lastDataTime === null}
+				{#if isLoading}
 					<!-- Loading: spinning gray dot -->
 					<span class="relative flex h-2.5 w-2.5 items-center justify-center" aria-label="Memuat">
 						<span class="relative inline-flex h-2.5 w-2.5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-500"></span>
