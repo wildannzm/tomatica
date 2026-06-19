@@ -1,7 +1,31 @@
 <script>
-	import { ArrowLeft, Cpu, Network } from 'lucide-svelte';
+	import { ArrowLeft, Cpu, Network, Copy, Check } from 'lucide-svelte';
 
 	let activeDoc = $state('integration'); // 'integration', 'rpi', or 'esp32'
+	let payloadCopied = $state(false);
+
+	const jsonPayloadString = `{
+    "air_temperature": 27.5,
+    "air_humidity": 75.2,
+    "lux": 15200.0,
+    "soil_moisture": 68.0,
+    "rainfall": 0.0,
+    "wind_speed": 1.2,
+    "soil_ph": 6.5,
+    "nitrogen": 45,
+    "phosphorus": 20,
+    "potassium": 30,
+    "co2": 410,
+    "aqi": 42
+}`;
+
+	function copyPayload() {
+		navigator.clipboard.writeText(jsonPayloadString);
+		payloadCopied = true;
+		setTimeout(() => {
+			payloadCopied = false;
+		}, 2000);
+	}
 </script>
 
 <svelte:head>
@@ -83,20 +107,21 @@
 				<p>Pada setiap akhir siklus <em>interval</em> (standarnya 60 detik), skrip Python akan menyatukan data menjadi objek JSON. Data ini dikirimkan menuju <em>REST API</em> milik Supabase menggunakan protokol HTTP POST.</p>
 				
 				<p><strong>Format Payload (JSON):</strong></p>
-				<pre><code>&#123;
-    "air_temperature": 27.5,
-    "air_humidity": 75.2,
-    "lux": 15200.0,
-    "soil_moisture": 68.0,
-    "rainfall": 0.0,
-    "wind_speed": 1.2,
-    "soil_ph": 6.5,
-    "nitrogen": 45,
-    "phosphorus": 20,
-    "potassium": 30,
-    "co2": 410,
-    "aqi": 42
-&#125;</code></pre>
+				<div class="relative group mt-4 mb-6">
+					<button
+						onclick={copyPayload}
+						class="absolute right-3 top-3 rounded-md bg-gray-800 p-1.5 text-gray-300 transition-colors hover:bg-gray-700 hover:text-white"
+						aria-label="Salin payload"
+						title="Salin"
+					>
+						{#if payloadCopied}
+							<Check class="h-4 w-4 text-emerald-400" />
+						{:else}
+							<Copy class="h-4 w-4" />
+						{/if}
+					</button>
+					<pre class="!m-0"><code>{jsonPayloadString}</code></pre>
+				</div>
 				<p><em>Autentikasi HTTP menggunakan JWT Token (Service Role / Anon Key) disematkan dalam header permintaan untuk menjamin keamanan pengiriman.</em></p>
 
 				<h3>2. Bagaimana Aplikasi Web Menerima Data?</h3>
