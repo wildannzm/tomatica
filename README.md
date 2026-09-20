@@ -130,8 +130,6 @@ Open [http://localhost:5173](http://localhost:5173).
 tomatica/
 ├── prisma/
 │   ├── schema.prisma        # Database schema
-│   ├── seed.js              # Admin user seeder
-│   └── seed-sensor.js       # Dummy sensor data seeder
 ├── src/
 │   ├── hooks.server.js      # Auth middleware (session validation)
 │   ├── lib/
