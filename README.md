@@ -81,8 +81,6 @@ Open [http://localhost:5173](http://localhost:5173).
 | `bun run lint` | Run Prettier + ESLint checks |
 | `bun run format` | Auto-format code with Prettier |
 | `bun run db:push` | Push Prisma schema to database |
-| `bun run db:seed` | Seed admin user |
-| `bun run db:seed-sensor` | Seed 100 dummy sensor records |
 
 ## Database Schema
 
