@@ -15,7 +15,8 @@
 		Gauge,
 		TestTube,
 		Download,
-		Trash2
+		Trash2,
+		LogOut
 	} from 'lucide-svelte';
 	import { supabase } from '$lib/supabaseClient';
 	import Swal from 'sweetalert2';
@@ -56,7 +57,7 @@
 	// ─── Derived: grouped sensor card data ────────────────────────────
 	const sensorGroups = $derived([
 		{
-			id: 'udara',
+			id: 'air',
 			label: 'Kondisi Udara',
 			icon: '🌤️',
 			accent: 'from-sky-500 to-blue-600',
@@ -162,7 +163,7 @@
 			]
 		},
 		{
-			id: 'tanah',
+			id: 'soil',
 			label: 'Kondisi Tanah',
 			icon: '🌱',
 			accent: 'from-emerald-500 to-green-600',
@@ -293,7 +294,7 @@
 			]
 		},
 		{
-			id: 'cuaca',
+			id: 'weather',
 			label: 'Cuaca & Cahaya',
 			icon: '🌦️',
 			accent: 'from-indigo-500 to-purple-600',
@@ -369,7 +370,7 @@
 	// ─── Export & Reset ────────────────────────────────────────────────
 	async function exportToCSV() {
 		const result = await Swal.fire({
-			title: 'Export CSV',
+			title: 'Ekspor CSV',
 			text: 'Apakah Anda yakin ingin mengunduh semua data sebagai CSV?',
 			icon: 'question',
 			showCancelButton: true,
@@ -420,7 +421,7 @@
 	async function resetData() {
 		const result = await Swal.fire({
 			title: 'Hapus Semua Data?',
-			text: 'Anda tidak akan dapat mengembalikan data ini!',
+			text: 'Anda tidak akan dapat memulihkan data ini!',
 			icon: 'warning',
 			showCancelButton: true,
 			confirmButtonColor: '#d33',
@@ -451,7 +452,7 @@
 					co2: null,
 					aqi: null
 				};
-				Swal.fire('Terhapus!', 'Semua data telah dihapus.', 'success');
+				Swal.fire('Dihapus!', 'Semua data telah dihapus.', 'success');
 			} catch (err) {
 				Swal.fire('Gagal!', 'Gagal menghapus data: ' + err.message, 'error');
 			}
@@ -468,7 +469,7 @@
 			.limit(1)
 			.maybeSingle()
 			.then(({ data, error }) => {
-				if (error) console.error('Gagal mengambil data awal:', error.message);
+				if (error) console.error('Failed to fetch initial data:', error.message);
 				if (data) {
 					dataSensor = data;
 					lastDataTime = new Date(data.created_at).getTime();
@@ -483,7 +484,7 @@
 			.order('created_at', { ascending: false })
 			.limit(50)
 			.then(({ data, error }) => {
-				if (error) console.error('Gagal mengambil riwayat:', error.message);
+				if (error) console.error('Failed to fetch history:', error.message);
 				if (data) tableRows = data;
 			});
 
@@ -523,7 +524,7 @@
 	// ─── Chart series config ───────────────────────────────────────────
 	const chartGroups = [
 		{
-			id: 'udara',
+			id: 'air',
 			label: 'Kondisi Udara',
 			icon: '🌤️',
 			series: [
@@ -534,7 +535,7 @@
 			]
 		},
 		{
-			id: 'tanah',
+			id: 'soil',
 			label: 'Kondisi Tanah',
 			icon: '🌱',
 			series: [
@@ -546,7 +547,7 @@
 			]
 		},
 		{
-			id: 'cuaca',
+			id: 'weather',
 			label: 'Cuaca & Cahaya',
 			icon: '🌦️',
 			series: [
@@ -756,7 +757,7 @@
 			<div class="flex items-center gap-3">
 				{#if isLoading}
 					<!-- Loading: spinning gray dot -->
-					<span class="relative flex h-2.5 w-2.5 items-center justify-center" aria-label="Memuat">
+					<span class="relative flex h-2.5 w-2.5 items-center justify-center" aria-label="Loading">
 						<span
 							class="relative inline-flex h-2.5 w-2.5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-500"
 						></span>
@@ -766,7 +767,7 @@
 					<!-- Online: pulsing green dot -->
 					<span
 						class="relative flex h-2.5 w-2.5 items-center justify-center"
-						aria-label="Status koneksi: terhubung"
+						aria-label="Status: connected"
 					>
 						<span
 							class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
@@ -778,7 +779,7 @@
 					<!-- Offline: static red dot -->
 					<span
 						class="relative flex h-2.5 w-2.5 items-center justify-center"
-						aria-label="Status koneksi: terputus"
+						aria-label="Status: disconnected"
 					>
 						<span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500"></span>
 					</span>
@@ -791,21 +792,30 @@
 	<!-- Main Content -->
 	<main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
 		<!-- Header Section -->
-		<div class="mb-8">
-			<h1 class="text-2xl font-bold text-gray-900 sm:text-3xl">
-				{activeView === 'dashboard'
-					? 'Dashboard Monitoring'
-					: activeView === 'stats'
-						? 'Statistik Sensor'
-						: 'Tabel Data Sensor'}
-			</h1>
-			<p class="mt-1 text-sm text-gray-500">
-				{activeView === 'dashboard'
-					? 'Pemantauan kondisi tanaman tomat secara real-time.'
-					: activeView === 'stats'
-						? 'Grafik tren dari 30 data sensor terakhir.'
-						: 'Riwayat data sensor dari perangkat IoT.'}
-			</p>
+		<div class="mb-8 flex items-start justify-between">
+			<div>
+				<h1 class="text-2xl font-bold text-gray-900 sm:text-3xl">
+					{activeView === 'dashboard'
+						? 'Dashboard Monitoring'
+						: activeView === 'stats'
+							? 'Statistik Sensor'
+							: 'Tabel Data Sensor'}
+				</h1>
+				<p class="mt-1 text-sm text-gray-500">
+					{activeView === 'dashboard'
+						? 'Pemantauan kondisi tanaman tomat secara real-time.'
+						: activeView === 'stats'
+							? 'Grafik tren dari 30 pembacaan sensor terakhir.'
+							: 'Riwayat data sensor dari perangkat IoT.'}
+				</p>
+			</div>
+			<a
+				href="/logout"
+				class="flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-600 shadow-sm transition-colors hover:bg-red-50 hover:text-red-600"
+			>
+				<LogOut size={16} />
+				Keluar
+			</a>
 		</div>
 
 		<!-- ── DASHBOARD VIEW ──────────────────────────────────────────── -->
@@ -873,7 +883,7 @@
 					</div>
 					<h3 class="text-lg font-semibold text-gray-900">Data belum tersedia</h3>
 					<p class="mt-1 max-w-xs text-center text-sm text-gray-500">
-						Pastikan perangkat IoT Anda terhubung dan mengirimkan data.
+						Pastikan perangkat IoT Anda terhubung dan mengirim data.
 					</p>
 				</div>
 			{:else}
@@ -961,7 +971,7 @@
 					class="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:outline-hidden"
 				>
 					<Download class="h-4 w-4" />
-					Export CSV
+					Ekspor CSV
 				</button>
 				<button
 					onclick={resetData}
@@ -988,8 +998,8 @@
 					</div>
 					<h3 class="text-lg font-semibold text-gray-900">Data sensor belum tersedia</h3>
 					<p class="mt-1 max-w-xs text-center text-sm text-gray-500">
-						Riwayat pemantauan tidak ditemukan. Pastikan perangkat IoT Anda terhubung dan sedang
-						mengirimkan data.
+						Riwayat pemantauan tidak ditemukan. Pastikan perangkat IoT Anda terhubung dan
+						mengirim data.
 					</p>
 				</div>
 			{:else}
@@ -1004,22 +1014,22 @@
 								</p>
 							</div>
 
-							<!-- Group: Kondisi Udara -->
+							<!-- Group: Air Conditions -->
 							<div class="px-4 pt-3 pb-3">
 								<p
 									class="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wider text-sky-600 uppercase"
 								>
-									<span>🌤️</span> Kondisi Udara
-								</p>
-								<div class="grid grid-cols-2 gap-x-4 gap-y-2">
-									<div class="flex items-center justify-between">
-										<span class="text-xs text-gray-400">Suhu</span>
-										<span class="text-sm font-bold text-red-500"
-											>{row.air_temperature ?? '-'} °C</span
-										>
-									</div>
-									<div class="flex items-center justify-between">
-										<span class="text-xs text-gray-400">Kelembapan</span>
+								<span>🌤️</span> Kondisi Udara
+							</p>
+							<div class="grid grid-cols-2 gap-x-4 gap-y-2">
+								<div class="flex items-center justify-between">
+									<span class="text-xs text-gray-400">Suhu</span>
+									<span class="text-sm font-bold text-red-500"
+										>{row.air_temperature ?? '-'} °C</span
+									>
+								</div>
+								<div class="flex items-center justify-between">
+									<span class="text-xs text-gray-400">Kelembapan</span>
 										<span class="text-sm font-bold text-sky-500">{row.air_humidity ?? '-'} %</span>
 									</div>
 									<div class="flex items-center justify-between">
@@ -1035,22 +1045,22 @@
 
 							<div class="mx-4 border-t border-dashed border-gray-100"></div>
 
-							<!-- Group: Kondisi Tanah -->
+							<!-- Group: Soil Conditions -->
 							<div class="px-4 pt-3 pb-3">
 								<p
 									class="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wider text-emerald-600 uppercase"
 								>
-									<span>🌱</span> Kondisi Tanah
-								</p>
-								<div class="grid grid-cols-2 gap-x-4 gap-y-2">
-									<div class="flex items-center justify-between">
-										<span class="text-xs text-gray-400">Kelembapan</span>
-										<span class="text-sm font-bold text-emerald-500"
-											>{row.soil_moisture ?? '-'} %</span
-										>
-									</div>
-									<div class="flex items-center justify-between">
-										<span class="text-xs text-gray-400">pH Tanah</span>
+								<span>🌱</span> Kondisi Tanah
+							</p>
+							<div class="grid grid-cols-2 gap-x-4 gap-y-2">
+								<div class="flex items-center justify-between">
+									<span class="text-xs text-gray-400">Kelembapan</span>
+									<span class="text-sm font-bold text-emerald-500"
+										>{row.soil_moisture ?? '-'} %</span
+									>
+								</div>
+								<div class="flex items-center justify-between">
+									<span class="text-xs text-gray-400">pH Tanah</span>
 										<span class="text-sm font-bold text-lime-600">{row.soil_ph ?? '-'}</span>
 									</div>
 									<div class="flex items-center justify-between">
@@ -1074,25 +1084,25 @@
 
 							<div class="mx-4 border-t border-dashed border-gray-100"></div>
 
-							<!-- Group: Cuaca & Cahaya -->
+							<!-- Group: Weather & Light -->
 							<div class="px-4 pt-3 pb-3">
 								<p
 									class="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wider text-indigo-600 uppercase"
 								>
-									<span>🌦️</span> Cuaca & Cahaya
-								</p>
-								<div class="grid grid-cols-2 gap-x-4 gap-y-2">
-									<div class="flex items-center justify-between">
-										<span class="text-xs text-gray-400">Cahaya</span>
-										<span class="text-sm font-bold text-amber-500">{row.lux ?? '-'} Lux</span>
-									</div>
-									<div class="flex items-center justify-between">
-										<span class="text-xs text-gray-400">Hujan</span>
-										<span class="text-sm font-bold text-indigo-500">{row.rainfall ?? '-'} mm/h</span
-										>
-									</div>
-									<div class="flex items-center justify-between">
-										<span class="text-xs text-gray-400">Angin</span>
+								<span>🌦️</span> Cuaca & Cahaya
+							</p>
+							<div class="grid grid-cols-2 gap-x-4 gap-y-2">
+								<div class="flex items-center justify-between">
+									<span class="text-xs text-gray-400">Cahaya</span>
+									<span class="text-sm font-bold text-amber-500">{row.lux ?? '-'} Lux</span>
+								</div>
+								<div class="flex items-center justify-between">
+									<span class="text-xs text-gray-400">Hujan</span>
+									<span class="text-sm font-bold text-indigo-500">{row.rainfall ?? '-'} mm/h</span
+									>
+								</div>
+								<div class="flex items-center justify-between">
+									<span class="text-xs text-gray-400">Angin</span>
 										<span class="text-sm font-bold text-teal-500">{row.wind_speed ?? '-'} m/s</span>
 									</div>
 								</div>
@@ -1111,27 +1121,27 @@
 								<!-- Group header row -->
 								<tr class="border-b border-gray-100 bg-gray-50/50">
 									<th class="px-4 py-2" rowspan="2"></th>
-									<!-- Kondisi Udara -->
-									<th
-										colspan="4"
-										class="border-x border-sky-100 bg-sky-50/60 px-4 py-2 text-center text-xs font-bold tracking-wider text-sky-600 uppercase"
-									>
-										🌤️ Kondisi Udara
-									</th>
-									<!-- Kondisi Tanah -->
-									<th
-										colspan="5"
-										class="border-x border-emerald-100 bg-emerald-50/60 px-4 py-2 text-center text-xs font-bold tracking-wider text-emerald-600 uppercase"
-									>
-										🌱 Kondisi Tanah
-									</th>
-									<!-- Cuaca -->
-									<th
-										colspan="3"
-										class="border-l border-indigo-100 bg-indigo-50/60 px-4 py-2 text-center text-xs font-bold tracking-wider text-indigo-600 uppercase"
-									>
-										🌦️ Cuaca & Cahaya
-									</th>
+								<!-- Air Conditions -->
+								<th
+									colspan="4"
+									class="border-x border-sky-100 bg-sky-50/60 px-4 py-2 text-center text-xs font-bold tracking-wider text-sky-600 uppercase"
+								>
+									🌤️ Air Conditions
+								</th>
+								<!-- Soil Conditions -->
+								<th
+									colspan="5"
+									class="border-x border-emerald-100 bg-emerald-50/60 px-4 py-2 text-center text-xs font-bold tracking-wider text-emerald-600 uppercase"
+								>
+									🌱 Soil Conditions
+								</th>
+								<!-- Weather -->
+								<th
+									colspan="3"
+									class="border-l border-indigo-100 bg-indigo-50/60 px-4 py-2 text-center text-xs font-bold tracking-wider text-indigo-600 uppercase"
+								>
+									🌦️ Weather & Light
+								</th>
 								</tr>
 								<!-- Column labels row -->
 								<tr class="border-b border-gray-100 bg-gray-50">
@@ -1193,7 +1203,7 @@
 										<td class="px-4 py-3 font-medium whitespace-nowrap text-gray-500"
 											>{formatTime(row.created_at)}</td
 										>
-										<!-- Udara -->
+										<!-- Air -->
 										<td class="px-4 py-3 text-right font-semibold text-red-500"
 											>{row.air_temperature ?? '-'}</td
 										>
@@ -1207,7 +1217,7 @@
 											class="border-r border-gray-100 px-4 py-3 text-right font-semibold text-orange-500"
 											>{row.aqi ?? '-'}</td
 										>
-										<!-- Tanah -->
+										<!-- Soil -->
 										<td class="px-4 py-3 text-right font-semibold text-emerald-500"
 											>{row.soil_moisture ?? '-'}</td
 										>
@@ -1224,7 +1234,7 @@
 											class="border-r border-gray-100 px-4 py-3 text-right font-semibold text-teal-600"
 											>{row.potassium ?? '-'}</td
 										>
-										<!-- Cuaca -->
+										<!-- Weather -->
 										<td class="px-4 py-3 text-right font-semibold text-amber-500"
 											>{row.lux ?? '-'}</td
 										>
