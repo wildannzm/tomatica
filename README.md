@@ -61,12 +61,6 @@ DATABASE_URL=postgresql://postgres.your-project-ref:your-db-password@your-pooler
 ```bash
 # Push Prisma schema to Supabase
 bun run db:push
-
-# Seed admin user (username: admin, password: admin)
-bun run db:seed
-
-# Seed 100 dummy sensor records (optional)
-bun run db:seed-sensor
 ```
 
 ### Development
